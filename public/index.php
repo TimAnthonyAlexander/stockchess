@@ -1,9 +1,10 @@
 <?php
 
-namespace src;
+namespace public;
 
 // start session if not already started
 use Chess\Game;
+use src\Terminal;
 
 require(__DIR__.'/../vendor/autoload.php');
 
