@@ -1,0 +1,22 @@
+{
+    "name": "timprojekt/pchess",
+    "autoload": {
+        "classmap": [
+            "src"
+        ]
+    },
+    "authors": [
+        {
+            "name": "TimAnthonyAlexander",
+            "email": "github@timanthonyalexander.de"
+        }
+    ],
+    "require": {
+        "p-chess/chess": "^0.3.1",
+        "ext-json": "*"
+    }
+    ,
+    "require-dev": {
+        "roave/security-advisories": "dev-latest"
+    }
+}
