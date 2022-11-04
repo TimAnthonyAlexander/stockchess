@@ -4,10 +4,8 @@ namespace src;
 
 use Chess\Game;
 use Chess\Piece\AbstractPiece;
-use Chess\Piece\AsciiArray;
-use Chess\Variant\Classical\PGN\AN\Color;
 
-class Terminal
+class GamePlay
 {
     public static function utf8(Game $game, bool $flipped = false): string
     {

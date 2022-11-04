@@ -13,12 +13,18 @@ $game = new Game(Game::VARIANT_CLASSICAL, Game::MODE_STOCKFISH);
 $color = 'w';
 
 while(true) {
-    print GamePlay::utf8($game);
     print str_repeat('-', 35) . PHP_EOL;
 
-    $ai = $game->ai(['Skill Level' => 20], ['depth' => 15]);
-    $game->play($color, $ai->move);
+    if ($color === 'b') {
+        $ai = $game->ai(['Skill Level' => 20], ['depth' => 15]);
+        $game->play($color, $ai->move);
+    } else {
+        print "Move: ";
+        $playerMove = trim(fgets(STDIN));
+        $game->play($color, $playerMove);
+    }
 
+    print $game->getBoard()->getMovetext() . PHP_EOL;
     $color = $color === 'w' ? 'b' : 'w';
 }
 

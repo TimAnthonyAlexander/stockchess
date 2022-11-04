@@ -4,7 +4,7 @@ namespace public;
 
 use Chess\Game;
 use Chess\Variant\Classical\Board;
-use src\Terminal;
+use src\GamePlay;
 
 require(__DIR__.'/../vendor/autoload.php');
 
@@ -13,7 +13,7 @@ $game = new Game(Game::VARIANT_CLASSICAL, Game::MODE_STOCKFISH);
 $color = 'w';
 
 while(true) {
-    print Terminal::utf8($game);
+    print GamePlay::utf8($game);
     print str_repeat('-', 35) . PHP_EOL;
 
     if ($color === 'b') {

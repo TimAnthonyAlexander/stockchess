@@ -4,7 +4,7 @@ namespace public;
 
 // start session if not already started
 use Chess\Game;
-use src\Terminal;
+use src\GamePlay;
 
 require(__DIR__.'/../vendor/autoload.php');
 
@@ -132,7 +132,7 @@ $_SESSION['color'] = $color;
             foreach ($rank as $j => $piece) {
                 $color = ($i + $j) % 2 === 0 ? 'white' : 'black';
                 $ogPiece = trim($piece);
-                $piece = $piece ? Terminal::getUtf8ForPiece($piece) : '&nbsp;';
+                $piece = $piece ? GamePlay::getUtf8ForPiece($piece) : '&nbsp;';
                 echo "<td class='$color' onclick='doThis(\"$i\", \"$j\", \"$ogPiece\")'>";
                 echo $piece;
                 echo '</td>';
@@ -140,7 +140,7 @@ $_SESSION['color'] = $color;
             echo '</tr>';
         }
 
-        $eval = round(Terminal::eval($game), 2);
+        $eval = round(GamePlay::eval($game), 2);
         ?>
     </table>
     <div>
