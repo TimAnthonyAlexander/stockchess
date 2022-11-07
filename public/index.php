@@ -3,6 +3,7 @@
 namespace public;
 
 // start session if not already started
+use Chess\Exception\BoardException;
 use Chess\Game;
 use src\GamePlay;
 
@@ -12,22 +13,64 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if (!isset($_SESSION['level'])) {
+    $_SESSION['level'] = 0;
+}
+if (!isset($_SESSION['depth'])) {
+    $_SESSION['depth'] = 1;
+}
+if (!isset($_SESSION['showbest'])) {
+    $_SESSION['showbest'] = false;
+}
+
+$bestMove = '';
+
 $game = $_SESSION['game'] ?? new Game(Game::VARIANT_CLASSICAL, Game::MODE_STOCKFISH);
+assert($game instanceof Game);
 
 $color = $_SESSION['color'] ?? 'w';
 
+$check = false;
+$mate = false;
+$stalemate = false;
+
 if (isset($_POST['move'])) {
-    $game->play($color, $_POST['move']);
-    $color = $color === 'w' ? 'b' : 'w';
-    $ai = $game->ai(['Skill Level' => (int)$_SESSION['level']], ['depth' => (int)$_SESSION['depth']]);
-    $game->play($color, $ai->move);
-    $color = $color === 'w' ? 'b' : 'w';
+    try {
+        $game->play($color, $_POST['move']);
+        $color = $color === 'w' ? 'b' : 'w';
+        $level = (int)$_SESSION['level'];
+        if ($level <= 20) {
+            $ai = $game->ai(['Skill Level' => $level], ['depth' => (int)$_SESSION['depth']]);
+            $game->play($color, $ai->move);
+            $_SESSION['lastMove'] = $ai->move;
+            $color                = $color === 'w' ? 'b' : 'w';
+        }
+
+        if ($game->getBoard()->isCheck()) {
+            $check = true;
+        }
+        if ($game->getBoard()->isMate()) {
+            $mate = true;
+        }
+        if ($game->getBoard()->isStalemate()) {
+            $stalemate = true;
+        }
+    } catch (BoardException) {
+        print "Invalid move<br>";
+    }
+    $betterAi = $game->ai(['Skill Level' => 15], ['depth' => 7]);
+    $bestMove = $betterAi->move;
 }
 if (isset($_GET['reset'])) {
     $game = new Game(Game::VARIANT_CLASSICAL, Game::MODE_STOCKFISH);
     $_SESSION['level'] = (int)($_GET['level'] ?? '1');
     $_SESSION['depth'] = (int)($_GET['depth'] ?? '15');
+    $_SESSION['showbest'] = (bool)($_GET['showbest'] ?? false);
     $color = 'w';
+}
+if (isset($_GET['undo'])) {
+    $game->getBoard()->undo();
+    $game->getBoard()->undo();
 }
 
 $_SESSION['game'] = $game;
@@ -62,7 +105,7 @@ $_SESSION['color'] = $color;
             background-color: #fff;
         }
         table td.black:hover {
-            background-color: #333;
+            background-color: darkseagreen;
         }
         table td.white:hover {
             background-color: #ccc;
@@ -74,7 +117,7 @@ $_SESSION['color'] = $color;
         }
     </style>
     <script>
-        function doThis(i, j, piece) {
+        function doThis(i, j, piece, field) {
             // Add the move to the form
             // 14 = e2
             // 47 = g5
@@ -89,7 +132,7 @@ $_SESSION['color'] = $color;
             // If the field is empty, then add either the piece or if it is a pawn, then add the from position
             if (moveInput.value === '') {
                 if (piece.search(/[prnbkqPRNBKQ]/) !== -1) {
-                    console.log('Piece');
+                    document.getElementById(field).style.backgroundColor = '#34bee9';
 
                     // if piece is pawn, add i to form
                     if (piece.search(/[pP]/) !== -1) {
@@ -122,40 +165,97 @@ $_SESSION['color'] = $color;
     </script>
 </head>
 <body>
-    <table>
+<!-- Centered table -->
+<div style="width: 100%; text-align: center;">
+    <h1>Chess by Tim</h1>
+    <label>Last move:
+        <input type="text" value="<?= ($_SESSION['lastMove'] ?? '') ?>" disabled>
+    </label><br>
+    <?php
+    if ($_SESSION['showbest']) {
+        print <<<HTML
+<label>Best move:
+    <input type="text" value="$bestMove" disabled>
+</label><br>
+HTML;
+    }
+    if ($check) {
+        print "<h2>Check!</h2>";
+    }
+    if ($mate) {
+        print "<h2>Mate!</h2>";
+    }
+    if ($stalemate) {
+        print "<h2>Stalemate!</h2>";
+    }
+    ?>
+    <hr>
+    <table style="margin-left: auto; margin-right: auto;">
         <?php
         $board = $game->getBoard()->toAsciiArray(false);
 
         // each rank, each piece
         foreach ($board as $i => $rank) {
             echo '<tr>';
+            $isFirst = true;
             foreach ($rank as $j => $piece) {
+                $id = uniqid('', true);
                 $color = ($i + $j) % 2 === 0 ? 'white' : 'black';
                 $ogPiece = trim($piece);
                 $piece = $piece ? GamePlay::getUtf8ForPiece($piece) : '&nbsp;';
-                echo "<td class='$color' onclick='doThis(\"$i\", \"$j\", \"$ogPiece\")'>";
+                $first = $isFirst ? '<td style="border: none; font-size: 15px;">'.($i + 1).'</td>' : '';
+                echo "$first";
+                echo "<td class='$color' id='$id' onclick='doThis(\"$i\", \"$j\", \"$ogPiece\", \"$id\")'>";
                 echo $piece;
                 echo '</td>';
+                $isFirst = false;
             }
+
             echo '</tr>';
+        }
+
+        echo '<td style="border: none;"></td>';
+
+        for ($i = 0; $i < 8; $i++) {
+            echo '<td style="border: none; font-size: 15px;">'.chr(97 + $i).'</td>';
         }
 
         $eval = round(GamePlay::eval($game), 2);
         ?>
     </table>
     <div>
-        <span>Eval: </span>
-        <span><?php echo $eval; ?></span>
+        <div>
+            <span>Eval: </span>
+            <span><?php echo $eval; ?></span>
+        </div>
+        <form action="?" method="post" id="form">
+            <label>Current move<br>
+                <input type="text" name="move" id="move" autofocus>
+            </label><br>
+            <input type="submit" value="Play">
+        </form>
+        <form action="" method="get">
+            <input type="hidden" name="undo" value="1">
+            <input type="submit" value="Undo">
+        </form>
+        <hr>
+        <form action="" method="get">
+            <input type="hidden" name="reset" value="1">
+            <label>Level: [0-20 | 21 deactivates engine]<br>
+                <input type="number" name="level" min="0" max="21" value="<?=$_SESSION['level'] ?? 0?>">
+            </label><br>
+            <label>Depth: [1-15]<br>
+                <input type="number" name="depth" min="1" max="15" value="<?=$_SESSION['depth'] ?? 15?>">
+            </label><br>
+            <label>Show best move<br>
+                <select name="showbest">
+                    <option value="0" <?= $_SESSION['showbest'] === false ? 'selected' : ''?>>No</option>
+                    <option value="1" <?= $_SESSION['showbest'] ? 'selected' : ''?>>Yes</option>
+                </select>
+            </label><br>
+            <input type="submit" value="Reset">
+        </form>
     </div>
-    <form action="?" method="post" id="form">
-        <input type="text" name="move" id="move" placeholder="Move" autofocus>
-        <input type="submit" value="Play">
-    </form>
-    <form action="" method="get">
-        <input type="hidden" name="reset" value="1">
-        <input type="number" name="level" min="0" max="20" value="<?=$_SESSION['level'] ?? 0?>">
-        <input type="number" name="depth" min="1" max="15" value="<?=$_SESSION['depth'] ?? 15?>">
-        <input type="submit" value="Reset">
-    </form>
+</div>
 </body>
 </html>
