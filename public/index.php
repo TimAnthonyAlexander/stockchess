@@ -34,10 +34,21 @@ $check = false;
 $mate = false;
 $stalemate = false;
 
-if (isset($_POST['move'])) {
+if (!isset($level)) {
+    $level = $_SESSION['level'] ?? 0;
+}
+
+if (isset($_GET['aimove'])) {
+    print <<<HTML
+<script>
+// Remove the ?aimove=1 from the URL
+if (window.history.replaceState) {
+    window.history.replaceState(null, null, window.location.href.split("?")[0]);
+}
+</script>
+HTML;
+
     try {
-        $game->play($color, $_POST['move']);
-        $color = $color === 'w' ? 'b' : 'w';
         $level = (int)$_SESSION['level'];
         if ($level <= 20) {
             $ai = $game->ai(['Skill Level' => $level], ['depth' => (int)$_SESSION['depth']]);
@@ -58,8 +69,47 @@ if (isset($_POST['move'])) {
     } catch (BoardException) {
         print "Invalid move<br>";
     }
-    $betterAi = $game->ai(['Skill Level' => 15], ['depth' => 7]);
+    $betterAi = $game->ai(['Skill Level' => min(20, $level+1)], ['depth' => min(15, (int)$_SESSION['depth']+3)]);
     $bestMove = $betterAi->move;
+}
+
+if (isset($_POST['move'])) {
+    try {
+        $played = $game->play($color, $_POST['move']);
+
+        if ($played) {
+            $color = $color === 'w' ? 'b' : 'w';
+            $level = (int)$_SESSION['level'];
+
+            $_SESSION['lastMove'] = $_POST['move'];
+
+            if ($level <= 20) {
+                $get           = $_GET;
+                $get['aimove'] = true;
+                $getQuery      = http_build_query($get);
+                print <<<HTML
+<script>
+    setTimeout(function() {
+        window.location.href = window.location.pathname + '?' + '$getQuery';
+    }, 1000);
+</script>
+HTML;
+            }
+
+
+            if ($game->getBoard()->isCheck()) {
+                $check = true;
+            }
+            if ($game->getBoard()->isMate()) {
+                $mate = true;
+            }
+            if ($game->getBoard()->isStalemate()) {
+                $stalemate = true;
+            }
+        }
+    } catch (BoardException) {
+        print "Invalid move<br>";
+    }
 }
 if (isset($_GET['reset'])) {
     $_SESSION['level'] = (int)($_GET['level'] ?? '1');
@@ -114,9 +164,13 @@ $_SESSION['color'] = $color;
         table td.white:hover {
             background-color: #ccc;
         }
+        table td.last {
+            background-color: #827cff;
+        }
+
         /* Font bigger */
         table td {
-            font-size: 2.5em;
+            font-size: 3.6em;
             cursor: default;
         }
     </style>
@@ -162,8 +216,15 @@ $_SESSION['color'] = $color;
                     }
                 }
 
+                // Play the move.mp3 sound
+                let audio = new Audio('move.mp3');
+                audio.play();
+
                 moveInput.value += pos;
-                document.getElementById('form').submit();
+
+                setTimeout(function() {
+                    document.getElementById('form').submit();
+                }, 500);
             }
         }
     </script>
@@ -203,12 +264,17 @@ HTML;
             echo '<tr>';
             $isFirst = true;
             foreach ($rank as $j => $piece) {
-                $id = uniqid('', true);
+                $rank = $i+1;
+                $file = chr($j+97);
                 $color = ($i + $j) % 2 === 0 ? 'white' : 'black';
+                $lastMove = substr($_SESSION['lastMove'], -2);
+                if ($lastMove === $file.$rank) {
+                    $color = 'last';
+                }
+                $id = uniqid('', true);
                 $ogPiece = trim($piece);
                 $piece = $piece ? GamePlay::getUtf8ForPiece($piece) : '&nbsp;';
-                $first = $isFirst ? '<td style="border: none; font-size: 15px;">'.($i + 1).'</td>' : '';
-                echo "$first";
+                echo $isFirst ? '<td style="border: none; font-size: 15px;">'.($i + 1).'</td>' : '';
                 echo "<td class='$color' id='$id' onclick='doThis(\"$i\", \"$j\", \"$ogPiece\", \"$id\")'>";
                 echo $piece;
                 echo '</td>';
