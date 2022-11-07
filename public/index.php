@@ -62,10 +62,14 @@ if (isset($_POST['move'])) {
     $bestMove = $betterAi->move;
 }
 if (isset($_GET['reset'])) {
-    $game = new Game(Game::VARIANT_CLASSICAL, Game::MODE_STOCKFISH);
     $_SESSION['level'] = (int)($_GET['level'] ?? '1');
     $_SESSION['depth'] = (int)($_GET['depth'] ?? '15');
     $_SESSION['showbest'] = (bool)($_GET['showbest'] ?? false);
+    $_SESSION['variant'] = $_GET['variant'] ?? 'classical';
+
+    $variant = $_SESSION['variant'] === 'classical' ? Game::VARIANT_CLASSICAL : Game::VARIANT_960;
+
+    $game = new Game($variant, Game::MODE_STOCKFISH);
     $color = 'w';
 }
 if (isset($_GET['undo'])) {
@@ -92,8 +96,8 @@ $_SESSION['color'] = $color;
             border-collapse: collapse;
         }
         table td {
-            width: 50px;
-            height: 50px;
+            width: 80px;
+            height: 80px;
             text-align: center;
             vertical-align: middle;
             border: 1px solid lightseagreen;
@@ -251,6 +255,12 @@ HTML;
                 <select name="showbest">
                     <option value="0" <?= $_SESSION['showbest'] === false ? 'selected' : ''?>>No</option>
                     <option value="1" <?= $_SESSION['showbest'] ? 'selected' : ''?>>Yes</option>
+                </select>
+            </label><br>
+            <label>Variant<br>
+                <select name="variant">
+                    <option value="classical" <?= $_SESSION['variant'] === 'classical' ? 'selected' : ''?>>Standard</option>
+                    <option value="chess960" <?= $_SESSION['variant'] === 'chess960' ? 'selected' : ''?>>Chess960</option>
                 </select>
             </label><br>
             <input type="submit" value="Reset">
