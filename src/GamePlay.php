@@ -2,6 +2,12 @@
 
 namespace src;
 
+use Chess\Eval\AbsoluteForkEval;
+use Chess\Eval\AbsolutePinEval;
+use Chess\Eval\AttackEval;
+use Chess\Eval\BadBishopEval;
+use Chess\Eval\KingSafetyEval;
+use Chess\Eval\TacticsEval;
 use Chess\Game;
 use Chess\Piece\AbstractPiece;
 
@@ -62,12 +68,36 @@ class GamePlay
         $defEval = $game->getBoard()->getDefenseEval();
         $spEval  = $game->getBoard()->getSpaceEval();
 
+        $absoluteForkEval = new AbsoluteForkEval($game->getBoard());
+        $forkEvaluation = $absoluteForkEval->eval();
+
+        $absolutePinEval = new AbsolutePinEval($game->getBoard());
+        $pinEvaluation = $absolutePinEval->eval();
+
+        $badBishopEval = new BadBishopEval($game->getBoard());
+        $badBishopEvaluation = $badBishopEval->eval();
+
+        $kingSafetyEval = new KingSafetyEval($game->getBoard());
+        $kingSafetyEvaluation = $kingSafetyEval->eval();
+
+        $attackEval = new AttackEval($game->getBoard());
+        $attackEvaluation = $attackEval->eval();
+
+        $tacticsEval = new TacticsEval($game->getBoard());
+        $tacticsEvaluation = $tacticsEval->eval();
+
         $pieces = self::getPieces($game);
 
         $defEval = count($defEval->w) - count($defEval->b);
         $spEval  = count($spEval->w) - count($spEval->b);
+        $forkEval = $forkEvaluation['w'] - $forkEvaluation['b'];
+        $pinEval = $pinEvaluation['w'] - $pinEvaluation['b'];
+        $badBishopEval = $badBishopEvaluation['w'] - $badBishopEvaluation['b'];
+        $kingSafetyEval = ($kingSafetyEvaluation['w'] - $kingSafetyEvaluation['b']) * 1.25;
+        $attackEval = $attackEvaluation['w'] - $attackEvaluation['b'];
+        $tacticsEval = $tacticsEvaluation['w'] - $tacticsEvaluation['b'];
 
-        return ($defEval + $spEval) * 0.01 + $pieces;
+        return ($defEval + $spEval + $forkEval + $pinEval + $badBishopEval + $kingSafetyEval + $attackEval + $tacticsEval) * 0.01 + $pieces;
     }
 
     public static function getPieces(Game $game): float

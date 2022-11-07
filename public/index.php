@@ -34,9 +34,7 @@ $check = false;
 $mate = false;
 $stalemate = false;
 
-if (!isset($level)) {
-    $level = $_SESSION['level'] ?? 0;
-}
+$_SESSION['lastMove'] = 'e2';
 
 if (isset($_GET['aimove'])) {
     print <<<HTML
@@ -146,8 +144,8 @@ $_SESSION['color'] = $color;
             border-collapse: collapse;
         }
         table td {
-            width: 80px;
-            height: 80px;
+            width: 85px;
+            height: 85px;
             text-align: center;
             vertical-align: middle;
             border: 1px solid lightseagreen;
@@ -170,7 +168,7 @@ $_SESSION['color'] = $color;
 
         /* Font bigger */
         table td {
-            font-size: 3.6em;
+            font-size: 4.2em;
             cursor: default;
         }
     </style>
