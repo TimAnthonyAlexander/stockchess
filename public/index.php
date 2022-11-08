@@ -272,7 +272,7 @@ HTML;
             <span><?php echo $eval; ?></span>
         </div>
         <form action="?" method="post" id="form">
-            <input type="hidden" name="move" id="move">
+            <input type="text" name="move" id="move">
             <input type="submit" value="Play" hidden>
         </form>
         <form action="" method="get">

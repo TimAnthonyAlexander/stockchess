@@ -1,5 +1,5 @@
+let castles = false;
 function doThis(i, j, piece, field) {
-    let castles = false;
 
     // Add the move to the form
     // 14 = e2
@@ -12,7 +12,8 @@ function doThis(i, j, piece, field) {
 
     let moveInput = document.getElementById('move');
 
-    if ((piece === 'k' || piece === 'K') && a[j] === 'e') {
+    if (moveInput.value === '' && (piece === 'k' || piece === 'K') && 'e' === a[j]) {
+        console.log('Activated castles');
         castles = true;
     }
 
@@ -33,13 +34,18 @@ function doThis(i, j, piece, field) {
 
         // If input length === 1, then it is a pawn. If piece is null, remove input. Else, add x
         // If input is lowercase, then it is a pawn.
+        console.log(moveInput.value);
         if (moveInput.value === 'K' && (a[j] === 'g' || a[j] === 'h' || a[j] === 'c' || a[j] === 'b' || a[j] === 'a') && (b[i] === '1' || b[i] === '8') && castles) {
+            console.log('Castles actually');
             if (a[j] === 'g' || a[j] === 'h') {
+                console.log('Castles kingside');
                 moveInput.value = 'O-O';
             } else if(a[j] === 'c' || a[j] === 'b' || a[j] === 'a') {
+                console.log('Castles queenside');
                 moveInput.value = 'O-O-O';
             }
         } else if (moveInput.value.length === 1 && moveInput.value === moveInput.value.toLowerCase()) {
+            console.log('Pawn');
             if (piece === '.') {
                 moveInput.value = '';
             } else {
@@ -47,6 +53,7 @@ function doThis(i, j, piece, field) {
             }
             moveInput.value += pos;
         } else {
+            console.log('Not pawn');
             if (piece !== '.') {
                 moveInput.value += 'x';
             }
