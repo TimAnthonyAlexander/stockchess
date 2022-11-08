@@ -1,0 +1,31 @@
+table {
+    border-collapse: collapse;
+}
+table td {
+    width: 85px;
+    height: 85px;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid lightseagreen;
+}
+table td.black {
+    background-color: lightseagreen;
+}
+table td.white {
+    background-color: #fff;
+}
+table td.black:hover {
+    background-color: darkseagreen;
+}
+table td.white:hover {
+    background-color: #ccc;
+}
+table td.last {
+    background-color: #827cff;
+}
+
+/* Font bigger */
+table td {
+    font-size: 4.2em;
+    cursor: default;
+}

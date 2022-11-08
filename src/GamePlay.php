@@ -10,6 +10,7 @@ use Chess\Eval\KingSafetyEval;
 use Chess\Eval\TacticsEval;
 use Chess\Game;
 use Chess\Piece\AbstractPiece;
+use Chess\Variant\Classical\Board;
 
 class GamePlay
 {
@@ -65,39 +66,7 @@ class GamePlay
      */
     public static function eval(Game $game): float
     {
-        $defEval = $game->getBoard()->getDefenseEval();
-        $spEval  = $game->getBoard()->getSpaceEval();
-
-        $absoluteForkEval = new AbsoluteForkEval($game->getBoard());
-        $forkEvaluation = $absoluteForkEval->eval();
-
-        $absolutePinEval = new AbsolutePinEval($game->getBoard());
-        $pinEvaluation = $absolutePinEval->eval();
-
-        $badBishopEval = new BadBishopEval($game->getBoard());
-        $badBishopEvaluation = $badBishopEval->eval();
-
-        $kingSafetyEval = new KingSafetyEval($game->getBoard());
-        $kingSafetyEvaluation = $kingSafetyEval->eval();
-
-        $attackEval = new AttackEval($game->getBoard());
-        $attackEvaluation = $attackEval->eval();
-
-        $tacticsEval = new TacticsEval($game->getBoard());
-        $tacticsEvaluation = $tacticsEval->eval();
-
-        $pieces = self::getPieces($game);
-
-        $defEval = count($defEval->w) - count($defEval->b);
-        $spEval  = count($spEval->w) - count($spEval->b);
-        $forkEval = $forkEvaluation['w'] - $forkEvaluation['b'];
-        $pinEval = $pinEvaluation['w'] - $pinEvaluation['b'];
-        $badBishopEval = $badBishopEvaluation['w'] - $badBishopEvaluation['b'];
-        $kingSafetyEval = ($kingSafetyEvaluation['w'] - $kingSafetyEvaluation['b']) * 1.25;
-        $attackEval = $attackEvaluation['w'] - $attackEvaluation['b'];
-        $tacticsEval = $tacticsEvaluation['w'] - $tacticsEvaluation['b'];
-
-        return ($defEval + $spEval + $forkEval + $pinEval + $badBishopEval + $kingSafetyEval + $attackEval + $tacticsEval) * 0.01 + $pieces;
+        return self::evalBoard($game->getBoard(), self::getPieces($game));
     }
 
     public static function getPieces(Game $game): float
@@ -126,5 +95,45 @@ class GamePlay
         $value = $pieces[$piece] ?? 0;
 
         return $color === 'w' ? $value : -$value;
+    }
+
+    /**
+     * @param Board $board
+     * @param float $pieces
+     * @return float
+     */
+    public static function evalBoard(Board $board, float $pieces): float
+    {
+        $defEval = $board->getDefenseEval();
+        $spEval  = $board->getSpaceEval();
+
+        $absoluteForkEval = new AbsoluteForkEval($board);
+        $forkEvaluation   = $absoluteForkEval->eval();
+
+        $absolutePinEval = new AbsolutePinEval($board);
+        $pinEvaluation   = $absolutePinEval->eval();
+
+        $badBishopEval       = new BadBishopEval($board);
+        $badBishopEvaluation = $badBishopEval->eval();
+
+        $kingSafetyEval       = new KingSafetyEval($board);
+        $kingSafetyEvaluation = $kingSafetyEval->eval();
+
+        $attackEval       = new AttackEval($board);
+        $attackEvaluation = $attackEval->eval();
+
+        $tacticsEval       = new TacticsEval($board);
+        $tacticsEvaluation = $tacticsEval->eval();
+
+        $defEval        = count($defEval->w) - count($defEval->b);
+        $spEval         = count($spEval->w) - count($spEval->b);
+        $forkEval       = $forkEvaluation['w'] - $forkEvaluation['b'];
+        $pinEval        = $pinEvaluation['w'] - $pinEvaluation['b'];
+        $badBishopEval  = $badBishopEvaluation['w'] - $badBishopEvaluation['b'];
+        $kingSafetyEval = ($kingSafetyEvaluation['w'] - $kingSafetyEvaluation['b']) * 1.25;
+        $attackEval     = $attackEvaluation['w'] - $attackEvaluation['b'];
+        $tacticsEval    = $tacticsEvaluation['w'] - $tacticsEvaluation['b'];
+
+        return ($defEval + $spEval + $forkEval + $pinEval + $badBishopEval + $kingSafetyEval + $attackEval + $tacticsEval) * 0.01 + $pieces;
     }
 }

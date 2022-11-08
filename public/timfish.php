@@ -35,32 +35,7 @@ $check = false;
 $mate = false;
 $stalemate = false;
 
-$_SESSION['lastMove'] = $_SESSION['lastMove'] ?? 'start';
-
-$level = (int)($_SESSION['level'] ?? 0);
-
-$engineLevel = match(true) {
-    $level < 3 => ' TimFish Beginner ',
-    $level < 6 => ' TimFish Novice ',
-    $level < 9 => ' TimFish Amateur ',
-    $level < 12 => ' TimFish Professional ',
-    $level < 15 => ' TimFish Master ',
-    $level < 18 => ' TimFish Grandmaster ',
-    $level < 21 => ' TimFish Super Grandmaster ',
-    default => 'TimFish Random ',
-};
-
-$multiplier = 88;
-$randomness = (22 - $level);
-$isRandom = random_int(0, $multiplier) < $randomness;
-
-$randomnessString = sprintf(' (%s%%)', round($randomness/$multiplier, 2) * 100);
-
-if ($isRandom) {
-    $engineLevel = '<span style="color: red;">'.$engineLevel.'</span>';
-} else {
-    $engineLevel = '<span style="color: green;">'.$engineLevel.'</span>';
-}
+$_SESSION['lastMove'] = 'start';
 
 if (isset($_GET['aimove'])) {
     print <<<HTML
@@ -73,19 +48,16 @@ if (window.history.replaceState) {
 HTML;
 
     try {
-        if ($level >= 0) {
-            if (!$isRandom) {
-                $ai = $game->ai(['Skill Level' => $level], ['depth' => (int)$_SESSION['depth']]);
-                $game->play($color, $ai->move);
-                $_SESSION['lastMove'] = $ai->move;
-                $color                = $color === 'w' ? 'b' : 'w';
-            } else {
-                $moves = $game->getBoard()->legalMoves();
-                $move  = $moves[random_int(0, count($moves) - 1)];
-                $game->play($color, $move);
-                $_SESSION['lastMove'] = $move;
-                $color                = $color === 'w' ? 'b' : 'w';
-            }
+        $level = (int)$_SESSION['level'];
+        if ($level <= 20) {
+            /*
+            $ai = $game->ai(['Skill Level' => $level], ['depth' => (int)$_SESSION['depth']]);
+            $game->play($color, $ai->move);
+            */
+            $timFish = TimFish::findBestMove($game, 0, 2);
+            $_SESSION['lastMove'] = $timFish[1];
+            $game->play($color, $timFish[1]);
+            $color                = $color === 'w' ? 'b' : 'w';
         }
 
         if ($game->getBoard()->isCheck()) {
@@ -104,11 +76,6 @@ HTML;
     $bestMove = $betterAi->move;
 }
 
-if ($level === -1) {
-    $engineLevel = 'OTB Human ';
-    $randomnessString = '';
-}
-
 if (isset($_POST['move'])) {
     try {
         $played = $game->play($color, $_POST['move']);
@@ -119,7 +86,7 @@ if (isset($_POST['move'])) {
 
             $_SESSION['lastMove'] = $_POST['move'];
 
-            if ($level >= 0) {
+            if ($level <= 20) {
                 $get           = $_GET;
                 $get['aimove'] = true;
                 $getQuery      = http_build_query($get);
@@ -147,9 +114,8 @@ HTML;
         print "Invalid move<br>";
     }
 }
-
 if (isset($_GET['reset'])) {
-    $_SESSION['level'] = (int)(($_GET['level'] ?? '1') / 100) - 1;
+    $_SESSION['level'] = (int)($_GET['level'] ?? '1');
     $_SESSION['depth'] = (int)($_GET['depth'] ?? '15');
     $_SESSION['showbest'] = (bool)($_GET['showbest'] ?? false);
     $_SESSION['variant'] = $_GET['variant'] ?? 'classical';
@@ -158,24 +124,6 @@ if (isset($_GET['reset'])) {
 
     $game = new Game($variant, Game::MODE_STOCKFISH);
     $color = 'w';
-
-    $_SESSION['lastMove'] = 'start';
-
-    $randomness = (22 - $_SESSION['level']);
-
-    $randomnessString = sprintf(' (%s%%)', round($randomness/$multiplier, 2) * 100);
-
-    print <<<HTML
-<script>
-// Remove the ?reset=1 from the URL
-if (window.history.replaceState) {
-    window.history.replaceState(null, null, window.location.href.split("?")[0]);
-}
-
-document.location.reload();
-</script>
-HTML;
-
 }
 if (isset($_GET['undo'])) {
     $game->getBoard()->undo();
@@ -205,11 +153,11 @@ $_SESSION['color'] = $color;
     <h1>Chess by Tim</h1>
     <label>Last move:
         <input type="text" value="<?= ($_SESSION['lastMove'] ?? '') ?>" disabled>
-    </label><br><?= $engineLevel . (($level+1)*100) . $randomnessString ?><br>
+    </label><br>
     <?php
     if ($_SESSION['showbest']) {
         print <<<HTML
-<label>Best move for you:
+<label>Best move:
     <input type="text" value="$bestMove" disabled>
 </label><br>
 HTML;
@@ -272,19 +220,20 @@ HTML;
             <span><?php echo $eval; ?></span>
         </div>
         <form action="?" method="post" id="form">
-            <input type="hidden" name="move" id="move">
-            <input type="submit" value="Play" hidden>
+            <label>Current move<br>
+                <input type="text" name="move" id="move" autofocus>
+            </label><br>
+            <input type="submit" value="Play">
         </form>
         <form action="" method="get">
             <input type="hidden" name="undo" value="1">
             <input type="submit" value="Undo">
         </form>
-        <p><?= $game->getBoard()->getMovetext() ?></p>
         <hr>
         <form action="" method="get">
             <input type="hidden" name="reset" value="1">
-            <label>AI Rating: [100-2100 | 0 deactivates engine]<br>
-                <input type="number" name="level" min="0" max="2100" value="<?=(($_SESSION['level'] ?? 1)+1)*100?>">
+            <label>Level: [0-20 | 21 deactivates engine]<br>
+                <input type="number" name="level" min="0" max="21" value="<?=$_SESSION['level'] ?? 0?>">
             </label><br>
             <label>Depth: [1-15]<br>
                 <input type="number" name="depth" min="1" max="15" value="<?=$_SESSION['depth'] ?? 15?>">
